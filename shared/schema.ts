@@ -1,18 +1,9 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
+export const simulationStatusSchema = z.enum(["success", "error", "timeout", "pending"]);
+export type SimulationStatus = z.infer<typeof simulationStatusSchema>;
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const verifyRequestSchema = z.object({
+  transactionId: z.string().optional(),
 });
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type VerifyRequest = z.infer<typeof verifyRequestSchema>;

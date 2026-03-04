@@ -1,37 +1,24 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import type { SimulationStatus } from "@shared/schema";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getSimulationStatus(): Promise<SimulationStatus>;
+  setSimulationStatus(status: SimulationStatus): Promise<SimulationStatus>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private status: SimulationStatus;
 
   constructor() {
-    this.users = new Map();
+    this.status = "success"; // Default simulation behavior
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getSimulationStatus(): Promise<SimulationStatus> {
+    return this.status;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async setSimulationStatus(status: SimulationStatus): Promise<SimulationStatus> {
+    this.status = status;
+    return this.status;
   }
 }
 
