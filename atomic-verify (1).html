@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atomic Verify — Blockchain Dispute Resolution</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cyan: #00f2ff;
+  --cyan-dim: rgba(0,242,255,0.15);
+  --cyan-glow: rgba(0,242,255,0.4);
+  --navy: #020c1b;
+  --navy-mid: #0a1628;
+  --navy-light: #112240;
+  --white: #e6f1ff;
+  --muted: #8892b0;
+  --green: #64ffda;
+  --orange: #ff9f43;
+  --red: #ff6b6b;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--navy); color: var(--white); font-family: var(--sans); overflow-x: hidden; }
+
+#bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.35; }
+
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 18px 6%; background: rgba(2,12,27,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(0,242,255,0.1); }
+.logo { font-family: var(--mono); font-size: 18px; color: var(--cyan); letter-spacing: 2px; display: flex; align-items: center; gap: 8px; }
+.logo-icon { width: 28px; height: 28px; border: 2px solid var(--cyan); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; animation: pulse-border 3s ease-in-out infinite; }
+@keyframes pulse-border { 0%,100%{box-shadow:0 0 0 0 var(--cyan-glow)} 50%{box-shadow:0 0 0 6px rgba(0,242,255,0)} }
+nav ul { display: flex; list-style: none; gap: 35px; }
+nav ul li a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; transition: color 0.2s; font-family: var(--mono); }
+nav ul li a:hover { color: var(--cyan); }
+.nav-btns { display: flex; gap: 10px; align-items: center; }
+.btn-outline { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); padding: 8px 20px; border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 12px; letter-spacing: 1px; transition: all 0.2s; }
+.btn-outline:hover { background: var(--cyan-dim); box-shadow: 0 0 12px var(--cyan-glow); }
+.btn-solid { background: var(--cyan); border: none; color: var(--navy); padding: 8px 20px; border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 1px; transition: all 0.2s; }
+.btn-solid:hover { background: #33f6ff; box-shadow: 0 0 20px var(--cyan-glow); transform: translateY(-1px); }
+
+.hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px 6% 60px; position: relative; z-index: 1; }
+.hero-badge { font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: 3px; text-transform: uppercase; border: 1px solid rgba(0,242,255,0.3); padding: 6px 18px; border-radius: 2px; margin-bottom: 28px; display: inline-block; animation: fadeUp 0.8s ease both; }
+.hero h1 { font-family: var(--sans); font-size: clamp(52px,8vw,96px); font-weight: 800; line-height: 1; letter-spacing: -2px; animation: fadeUp 0.9s ease 0.1s both; background: linear-gradient(135deg,#e6f1ff 0%,#00f2ff 50%,#64ffda 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero-sub { margin-top: 20px; font-size: 16px; color: var(--muted); max-width: 520px; line-height: 1.7; animation: fadeUp 0.9s ease 0.2s both; font-family: var(--mono); }
+.hero-cta { display: flex; gap: 14px; margin-top: 40px; animation: fadeUp 0.9s ease 0.3s both; }
+.btn-hero-primary { background: var(--cyan); color: var(--navy); border: none; padding: 14px 32px; border-radius: 4px; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.3s; }
+.btn-hero-primary:hover { background: #33f6ff; box-shadow: 0 8px 30px var(--cyan-glow); transform: translateY(-2px); }
+.btn-hero-secondary { background: transparent; color: var(--cyan); border: 1px solid rgba(0,242,255,0.4); padding: 14px 32px; border-radius: 4px; font-family: var(--mono); font-size: 13px; cursor: pointer; transition: all 0.3s; }
+.btn-hero-secondary:hover { background: var(--cyan-dim); border-color: var(--cyan); }
+.hero-stats { display: flex; gap: 60px; margin-top: 70px; animation: fadeUp 0.9s ease 0.4s both; }
+.stat { text-align: center; }
+.stat-num { font-family: var(--mono); font-size: 32px; color: var(--cyan); font-weight: 700; }
+.stat-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; font-family: var(--mono); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+section { position: relative; z-index: 1; }
+.section-label { font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 12px; display: block; }
+.section-title { font-size: clamp(28px,4vw,44px); font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
+.section-desc { color: var(--muted); font-family: var(--mono); font-size: 13px; line-height: 1.8; max-width: 560px; }
+
+.features-section { padding: 100px 6%; }
+.features-header { text-align: center; margin-bottom: 60px; }
+.features-header .section-desc { margin: 0 auto; }
+.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
+.feat-card { background: var(--navy-light); border: 1px solid rgba(0,242,255,0.1); border-radius: 8px; padding: 36px 30px; transition: all 0.3s; position: relative; overflow: hidden; }
+.feat-card::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); opacity:0; transition:opacity 0.3s; }
+.feat-card:hover { border-color: rgba(0,242,255,0.4); transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.4),0 0 30px rgba(0,242,255,0.08); }
+.feat-card:hover::before { opacity: 1; }
+.feat-icon { font-size: 28px; margin-bottom: 18px; display: block; }
+.feat-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; color: var(--white); }
+.feat-card p { color: var(--muted); font-family: var(--mono); font-size: 12px; line-height: 1.8; }
+.feat-tag { margin-top: 16px; display: inline-block; font-family: var(--mono); font-size: 10px; color: var(--cyan); background: var(--cyan-dim); padding: 3px 10px; border-radius: 2px; letter-spacing: 1px; }
+
+.arch-section { padding: 100px 6%; background: linear-gradient(180deg,transparent,rgba(0,242,255,0.02) 50%,transparent); }
+.arch-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.4fr; gap: 60px; align-items: start; }
+.arch-info .section-desc { max-width: 380px; }
+.phase-list { margin-top: 36px; display: flex; flex-direction: column; gap: 16px; }
+.phase-item { display: flex; align-items: flex-start; gap: 16px; }
+.phase-num { font-family: var(--mono); font-size: 11px; color: var(--navy); background: var(--cyan); min-width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-top: 2px; }
+.phase-text h4 { font-size: 14px; margin-bottom: 3px; color: var(--white); }
+.phase-text p { font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+.flowchart { background: var(--navy-light); border: 1px solid rgba(0,242,255,0.15); border-radius: 10px; padding: 30px; font-family: var(--mono); }
+.flow-title { font-size: 12px; letter-spacing: 2px; color: var(--cyan); text-transform: uppercase; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+.flow-title::after { content:''; flex:1; height:1px; background:rgba(0,242,255,0.2); }
+.flow-steps { display: flex; flex-direction: column; gap: 0; }
+.flow-step { display: flex; flex-direction: column; align-items: center; }
+.flow-node { width: 100%; padding: 12px 16px; border-radius: 6px; font-size: 11px; text-align: center; line-height: 1.4; }
+.node-action { background: rgba(0,242,255,0.1); border: 1px solid rgba(0,242,255,0.35); color: var(--cyan); }
+.node-state { background: rgba(100,255,218,0.08); border: 1px solid rgba(100,255,218,0.3); color: var(--green); }
+.node-decision { background: rgba(255,159,67,0.08); border: 1px solid rgba(255,159,67,0.4); color: var(--orange); border-radius: 4px; }
+.node-success { background: rgba(100,255,218,0.12); border: 1px solid rgba(100,255,218,0.5); color: var(--green); }
+.node-fail { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.4); color: var(--red); }
+.flow-arrow { width: 1px; height: 20px; background: rgba(0,242,255,0.3); position: relative; margin: 0 auto; }
+.flow-arrow::after { content:'▼'; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); font-size:8px; color:var(--cyan); }
+.flow-branches { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; margin-top: 20px; }
+.flow-branch-label { font-size: 9px; letter-spacing: 1px; text-align: center; margin-bottom: 8px; }
+.label-yes { color: var(--green); } .label-no { color: var(--red); }
+
+.tech-section { padding: 100px 6%; }
+.tech-inner { max-width: 1100px; margin: 0 auto; }
+.tech-header { text-align: center; margin-bottom: 60px; }
+.tech-header .section-desc { margin: 0 auto; }
+.tech-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; }
+.tech-card { background: var(--navy-light); border: 1px solid rgba(0,242,255,0.1); border-radius: 8px; padding: 28px 22px; text-align: center; transition: all 0.3s; }
+.tech-card:hover { border-color: var(--cyan); box-shadow: 0 0 20px rgba(0,242,255,0.1); transform: translateY(-4px); }
+.tech-emoji { font-size: 36px; display: block; margin-bottom: 12px; }
+.tech-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.tech-card p { font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; }
+.tech-layer { font-family: var(--mono); font-size: 10px; color: var(--cyan); letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
+
+footer { text-align: center; padding: 40px 6%; border-top: 1px solid rgba(0,242,255,0.1); font-family: var(--mono); }
+.footer-logo { font-size: 16px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 8px; }
+footer p { font-size: 11px; color: var(--muted); line-height: 2; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(2,12,27,0.92); backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--navy-light); border: 1px solid rgba(0,242,255,0.2); border-radius: 12px; width: 380px; max-width: 95vw; padding: 40px 36px; position: relative; box-shadow: 0 30px 80px rgba(0,0,0,0.7),0 0 40px rgba(0,242,255,0.06); animation: modalIn 0.35s cubic-bezier(.175,.885,.32,1.275) both; }
+@keyframes modalIn { from{opacity:0;transform:scale(0.9) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.modal-close { position: absolute; top: 16px; right: 18px; background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; transition: color 0.2s; }
+.modal-close:hover { color: var(--white); }
+.modal-logo { font-family: var(--mono); font-size: 13px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 24px; display: block; }
+.modal-title { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+.modal-subtitle { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+.btn-google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px; background: var(--navy); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: var(--white); font-family: var(--mono); font-size: 12px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px; }
+.btn-google:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+.google-logo { width: 18px; height: 18px; flex-shrink: 0; }
+.divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.divider-line { flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+.divider span { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+.form-input { width: 100%; padding: 11px 14px; background: var(--navy); border: 1px solid rgba(0,242,255,0.15); border-radius: 6px; color: var(--white); font-family: var(--mono); font-size: 13px; outline: none; transition: border-color 0.2s,box-shadow 0.2s; }
+.form-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,242,255,0.1); }
+.form-input::placeholder { color: rgba(136,146,176,0.5); }
+.btn-submit { width: 100%; padding: 13px; background: var(--cyan); border: none; border-radius: 6px; color: var(--navy); font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; margin-top: 6px; }
+.btn-submit:hover { background: #33f6ff; box-shadow: 0 6px 24px rgba(0,242,255,0.35); transform: translateY(-1px); }
+.form-switch { text-align: center; margin-top: 20px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.form-switch a { color: var(--cyan); cursor: pointer; text-decoration: none; }
+.form-switch a:hover { text-decoration: underline; }
+.auth-success { text-align: center; padding: 20px 0; }
+.success-icon { font-size: 48px; display: block; margin-bottom: 16px; animation: pop 0.4s ease; }
+@keyframes pop { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.success-msg { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--green); }
+.success-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(2,12,27,0.3); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.form-error { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); border-radius: 4px; padding: 8px 12px; font-family: var(--mono); font-size: 11px; color: var(--red); margin-bottom: 14px; display: none; }
+
+@media(max-width:900px){nav ul{display:none}.features-grid{grid-template-columns:1fr 1fr}.arch-inner{grid-template-columns:1fr}.tech-grid{grid-template-columns:1fr 1fr}.hero-stats{gap:30px}}
+@media(max-width:560px){.features-grid{grid-template-columns:1fr}.tech-grid{grid-template-columns:1fr}.hero-cta{flex-direction:column;align-items:center}.hero-stats{flex-wrap:wrap;justify-content:center}}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    ATOMIC-VERIFY
+  </div>
+  <ul>
+    <li><a href="#home">Home</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#techstack">Tech Stack</a></li>
+  </ul>
+  <div class="nav-btns">
+    <button class="btn-outline" onclick="openModal('login')">Login</button>
+    <button class="btn-solid" onclick="openModal('signup')">Sign Up</button>
+  </div>
+</nav>
+
+<section class="hero" id="home">
+  <span class="hero-badge">🔬 Phase 1 Proof of Concept — 2026</span>
+  <h1>Atomic‑Verify</h1>
+  <p class="hero-sub">Blockchain-based real-time dispute resolution protocol for fintech. Zero reconciliation lag.</p>
+  <div class="hero-cta">
+    <button class="btn-hero-primary" onclick="openModal('signup')">Get Started →</button>
+    <button class="btn-hero-secondary" onclick="document.getElementById('architecture').scrollIntoView({behavior:'smooth'})">View Architecture</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">60s</div><div class="stat-label">Max Resolution</div></div>
+    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Manual Steps</div></div>
+    <div class="stat"><div class="stat-num">14d→0</div><div class="stat-label">Dispute Lag</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Atomic Finality</div></div>
+  </div>
+</section>
+
+<section class="features-section" id="about">
+  <div class="features-header">
+    <span class="section-label">// Core Protocol</span>
+    <h2 class="section-title">Why Atomic-Verify?</h2>
+    <p class="section-desc">Ghost transactions cost fintech billions annually. Our smart escrow protocol eliminates them permanently.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card"><span class="feat-icon">⚡</span><h3>Instant Dispute Resolution</h3><p>Replace 5–14 day manual reconciliation with automated on-chain verification. Disputes resolve in under 60 seconds.</p><span class="feat-tag">REAL-TIME</span></div>
+    <div class="feat-card"><span class="feat-icon">🔒</span><h3>Smart Escrow</h3><p>Funds lock in a "Committed" state until the merchant's API confirms service provisioning via Chainlink Oracle.</p><span class="feat-tag">SOLIDITY</span></div>
+    <div class="feat-card"><span class="feat-icon">⚛️</span><h3>Atomic Protocol</h3><p>Transactions either complete fully or revert to zero state — no partial failure, no ghost funds, no ambiguity.</p><span class="feat-tag">WEB3</span></div>
+    <div class="feat-card"><span class="feat-icon">🔗</span><h3>Oracle Integration</h3><p>Chainlink middleware bridges on-chain contracts to off-chain merchant APIs for trustless verification.</p><span class="feat-tag">CHAINLINK</span></div>
+    <div class="feat-card"><span class="feat-icon">🌐</span><h3>Testnet Deployment</h3><p>Deployed on Ethereum Sepolia testnet. Production-grade contract logic in a zero-risk environment.</p><span class="feat-tag">SEPOLIA</span></div>
+    <div class="feat-card"><span class="feat-icon">📊</span><h3>Live Dashboard</h3><p>React.js frontend tracks transaction states in real-time — Committed, Verifying, Released, or Refunded.</p><span class="feat-tag">REACT</span></div>
+  </div>
+</section>
+
+<section class="arch-section" id="architecture">
+  <div class="arch-inner">
+    <div class="arch-info">
+      <span class="section-label">// System Design</span>
+      <h2 class="section-title">Protocol Architecture</h2>
+      <p class="section-desc">A deterministic 7-step flow that eliminates human intervention from the dispute lifecycle.</p>
+      <div class="phase-list">
+        <div class="phase-item"><div class="phase-num">1</div><div class="phase-text"><h4>User initiates payment</h4><p>React.js frontend calls <code style="color:var(--cyan);font-size:10px">depositFunds()</code> on the smart contract</p></div></div>
+        <div class="phase-item"><div class="phase-num">2</div><div class="phase-text"><h4>Funds enter escrow</h4><p>Smart contract locks funds in "Committed" state, starts 60s timer</p></div></div>
+        <div class="phase-item"><div class="phase-num">3</div><div class="phase-text"><h4>Oracle pings merchant API</h4><p>Chainlink Oracle sends GET request to Node.js merchant backend</p></div></div>
+        <div class="phase-item"><div class="phase-num">4</div><div class="phase-text"><h4>Decision: 200 OK or failure?</h4><p>Contract executes <code style="color:var(--green);font-size:10px">releaseFunds</code> or <code style="color:var(--red);font-size:10px">refundUser</code></p></div></div>
+      </div>
+    </div>
+    <div class="flowchart">
+      <div class="flow-title">// Execution Flowchart</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-node node-action">🖥️ User clicks "Subscribe" on React Dashboard</div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-node node-action">📝 Frontend calls <strong>depositFunds()</strong> on Smart Contract</div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-node node-state">🔒 Funds locked → State: <strong>COMMITTED</strong> | Timer: 60s</div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-node node-action">🔗 Chainlink Oracle → POST request to Node.js Merchant API</div>
+          <div class="flow-arrow"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-node node-decision" style="padding:14px">⏱️ Does Merchant API return <strong>200 OK</strong> within 60s?</div>
+        </div>
+        <div class="flow-branches">
+          <div><div class="flow-branch-label label-yes">✓ YES — Success</div><div class="flow-node node-success" style="font-size:10px">✅ Oracle sends "Success Hash" → <strong>releaseFunds()</strong> → Merchant wallet credited</div></div>
+          <div><div class="flow-branch-label label-no">✗ NO / TIMEOUT / 500</div><div class="flow-node node-fail" style="font-size:10px">❌ Oracle sends "Failure" → Timer expires → <strong>refundUser()</strong> → Instant revert</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="tech-section" id="techstack">
+  <div class="tech-inner">
+    <div class="tech-header">
+      <span class="section-label">// Phase 1 Stack</span>
+      <h2 class="section-title">Technology Stack</h2>
+      <p class="section-desc">Modern, production-grade tools designed for robust decentralized systems development.</p>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card"><div class="tech-layer">Frontend</div><span class="tech-emoji">⚛️</span><h4>React.js</h4><p>Payment dashboard tracking live transaction states in real-time with wallet integration.</p></div>
+      <div class="tech-card"><div class="tech-layer">Backend</div><span class="tech-emoji">🟢</span><h4>Node.js + Express</h4><p>Merchant API simulation. Can intentionally fail or timeout to stress-test the protocol.</p></div>
+      <div class="tech-card"><div class="tech-layer">Blockchain</div><span class="tech-emoji">🔷</span><h4>Solidity + Sepolia</h4><p>Time-locked escrow smart contract deployed on Ethereum Sepolia testnet.</p></div>
+      <div class="tech-card"><div class="tech-layer">Oracle</div><span class="tech-emoji">🔗</span><h4>Chainlink</h4><p>Decentralized oracle network bridging smart contracts to real-world HTTP endpoints.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">ATOMIC-VERIFY</div>
+  <p>Fintech · Blockchain · Web3<br><span style="color:var(--cyan)">Phase 1 Academic Project — 2026</span></p>
+</footer>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal" onclick="handleOverlayClick(event)">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script>
+let authMode = 'login';
+let currentView = 'options';
+
+function openModal(mode) {
+  authMode = mode; currentView = 'options';
+  document.getElementById('authModal').classList.add('open');
+  renderModal();
+}
+function closeModal() { document.getElementById('authModal').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('authModal')) closeModal(); }
+
+function renderModal() {
+  const box = document.getElementById('modalBox');
+  if (currentView === 'options') renderOptions(box);
+  else if (currentView === 'email') renderEmailForm(box);
+  else if (currentView === 'success') renderSuccess(box);
+}
+
+function renderOptions(box) {
+  const isLogin = authMode === 'login';
+  box.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <span class="modal-logo">⬡ ATOMIC-VERIFY</span>
+    <h2 class="modal-title">${isLogin ? 'Welcome back' : 'Create account'}</h2>
+    <p class="modal-subtitle">${isLogin ? 'Sign in to access your transaction dashboard.' : 'Join the protocol. Monitor your transactions in real-time.'}</p>
+    <button class="btn-google" onclick="handleGoogleAuth()">
+      <svg class="google-logo" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider"><div class="divider-line"></div><span>or</span><div class="divider-line"></div></div>
+    <button class="btn-submit" style="background:var(--navy-light);color:var(--cyan);border:1px solid rgba(0,242,255,0.3)" onclick="currentView='email';renderModal()">Continue with Email</button>
+    <div class="form-switch">${isLogin ? "Don't have an account? <a onclick=\"authMode='signup';renderModal()\">Sign up</a>" : "Already have an account? <a onclick=\"authMode='login';renderModal()\">Log in</a>"}</div>
+  `;
+}
+
+function renderEmailForm(box) {
+  const isLogin = authMode === 'login';
+  box.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <span class="modal-logo">⬡ ATOMIC-VERIFY</span>
+    <h2 class="modal-title">${isLogin ? 'Sign in' : 'Get started'}</h2>
+    <p class="modal-subtitle">Enter your details below.</p>
+    <div class="form-error" id="formError"></div>
+    ${!isLogin ? `<div class="form-group"><label>Full Name</label><input class="form-input" type="text" id="nameInput" placeholder="Satoshi Nakamoto"/></div>` : ''}
+    <div class="form-group"><label>Email Address</label><input class="form-input" type="email" id="emailInput" placeholder="you@example.com"/></div>
+    <div class="form-group"><label>Password</label><input class="form-input" type="password" id="passInput" placeholder="••••••••"/></div>
+    ${isLogin ? `<div style="text-align:right;margin-bottom:14px"><a style="font-family:var(--mono);font-size:10px;color:var(--cyan);cursor:pointer">Forgot password?</a></div>` : ''}
+    <button class="btn-submit" id="submitBtn" onclick="handleEmailSubmit()">${isLogin ? 'Sign In' : 'Create Account'}</button>
+    <div class="form-switch" style="margin-top:16px">
+      <a onclick="currentView='options';renderModal()" style="color:var(--muted)">← Back</a>&nbsp;·&nbsp;
+      ${isLogin ? "New here? <a onclick=\"authMode='signup';currentView='email';renderModal()\">Sign up</a>" : "Have an account? <a onclick=\"authMode='login';currentView='email';renderModal()\">Log in</a>"}
+    </div>
+  `;
+}
+
+function renderSuccess(box) {
+  const isLogin = authMode === 'login';
+  const email = window._lastEmail || 'your account';
+  box.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="auth-success">
+      <span class="success-icon">${isLogin ? '🔓' : '🚀'}</span>
+      <div class="success-msg">${isLogin ? 'Welcome back!' : 'Account created!'}</div>
+      <p class="success-sub">${isLogin ? 'You\'re now signed in as' : 'Welcome to Atomic-Verify,'}<br><strong style="color:var(--cyan)">${email}</strong><br><br>Your transaction dashboard is ready.</p>
+      <button class="btn-submit" style="margin-top:24px" onclick="closeModal()">Enter Dashboard →</button>
+    </div>
+  `;
+}
+
+function handleGoogleAuth() {
+  const box = document.getElementById('modalBox');
+  box.innerHTML = `<div style="text-align:center;padding:40px 0"><div style="font-size:32px;margin-bottom:16px">🔗</div><p style="font-family:var(--mono);font-size:12px;color:var(--muted)">Redirecting to Google…</p><div style="margin-top:20px;display:flex;justify-content:center"><div style="width:28px;height:28px;border:2px solid rgba(0,242,255,0.2);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.6s linear infinite"></div></div></div>`;
+  setTimeout(() => { window._lastEmail = 'user@gmail.com'; currentView = 'success'; renderModal(); }, 1600);
+}
+
+function handleEmailSubmit() {
+  const emailEl = document.getElementById('emailInput');
+  const passEl = document.getElementById('passInput');
+  const nameEl = document.getElementById('nameInput');
+  const errorEl = document.getElementById('formError');
+  const btn = document.getElementById('submitBtn');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const pass = passEl ? passEl.value : '';
+  const name = nameEl ? nameEl.value.trim() : '';
+  const errors = [];
+  if (authMode === 'signup' && !name) errors.push('Full name is required.');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Please enter a valid email address.');
+  if (pass.length < 6) errors.push('Password must be at least 6 characters.');
+  if (errors.length) { errorEl.style.display = 'block'; errorEl.textContent = errors[0]; return; }
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>${authMode === 'login' ? 'Signing in…' : 'Creating account…'}`;
+  window._lastEmail = email;
+  setTimeout(() => { currentView = 'success'; renderModal(); }, 1200);
+}
+
+// Particle canvas
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function Particle() { this.x=Math.random()*W; this.y=Math.random()*H; this.vx=(Math.random()-.5)*.3; this.vy=(Math.random()-.5)*.3; this.r=Math.random()*1.5+.3; this.alpha=Math.random()*.5+.1; }
+  function init() { particles = Array.from({length:80},()=>new Particle()); }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,242,255,${p.alpha})`; ctx.fill();
+    });
+    for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<120){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(0,242,255,${.08*(1-d/120)})`;ctx.lineWidth=.5;ctx.stroke();}}}
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',()=>{resize();init()});
+  resize();init();draw();
+})();
+</script>
+</body>
+</html>
