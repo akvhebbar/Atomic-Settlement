@@ -5,4 +5,5 @@ cd "c:\Users\akvhe\OneDrive\Documents\Atomic Settlement Project"; npx hardhat ru
 npx hardhat run scripts/check-ethers.ts --network localhostlocalhostt run client/src/deploy.ts --network localhost
 npx hardhat run scripts/check-ethers.ts --network localhostploy.ts --network localhost
 npx hardhat run scripts/check-ethers.ts --network localhostork localhost
+npx hardhat run scripts/check-ethers.ts --network localhostetwork localhostts --network localhostork localhost
 npx hardhat run scripts/check-ethers.ts --network localhost

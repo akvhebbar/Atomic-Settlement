@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 // Basic unit tests for the AtomicEscrow contract.  Covers the happy path
