@@ -29,6 +29,13 @@ export default defineConfig({
     },
   },
   networks: {
+    localhost: {
+      url: "http://127.0.0.1:8545",
+    },
+    ganache: {
+      type: "http",
+      url: "http://127.0.0.1:7545",
+    },
     hardhatMainnet: {
       type: "edr-simulated",
       chainType: "l1",
